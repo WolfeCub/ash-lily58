@@ -1,0 +1,44 @@
+name: Build firmware
+on:
+  push:
+    branches: [ vial ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: lily58/pandakb:ash
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+        submodules: recursive
+
+    - uses: cachix/install-nix-action@v31
+
+    - name: Build
+      run: nix develop -c make lily58/pandakb:ash
+
+    - name: Release
+      if: github.event_name != 'pull_request'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        tag="$(date -u +%Y-%m-%d)-${GITHUB_SHA::7}"
+        gh release create "$tag" lily58_pandakb_ash.uf2 \
+          --repo "$GITHUB_REPOSITORY" \
+          --target "$GITHUB_SHA" \
+          --title "$tag" \
+          --generate-notes \
+          --latest
