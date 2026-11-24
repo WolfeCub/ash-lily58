@@ -113,7 +113,7 @@ void render_mod_status_gui_alt(uint8_t modifiers) {
         oled_write_P(gui_off_2, false);
     }
 
-    if (modifiers & MOD_MASK_GUI & MOD_MASK_ALT) {
+    if ((modifiers & MOD_MASK_GUI) && (modifiers & MOD_MASK_ALT)) {
         oled_write_P(on_on_2, false);
     } else if(modifiers & MOD_MASK_GUI) {
         oled_write_P(on_off_2, false);
@@ -178,7 +178,7 @@ void render_mod_status_ctrl_shift(uint8_t modifiers) {
         oled_write_P(ctrl_off_2, false);
     }
 
-    if (modifiers & MOD_MASK_CTRL & MOD_MASK_SHIFT) {
+    if ((modifiers & MOD_MASK_CTRL) && (modifiers & MOD_MASK_SHIFT)) {
         oled_write_P(on_on_2, false);
     } else if(modifiers & MOD_MASK_CTRL) {
         oled_write_P(on_off_2, false);
@@ -255,6 +255,12 @@ bool oled_task_user(void) {
         render_mod_status_gui_alt(get_mods());
         render_mod_status_ctrl_shift(get_mods());
     }else{
+        // The OLED driver turns the display back on whenever the buffer changes,
+        // so the animation would keep this half awake forever. Stay dark while
+        // the master (synced via SPLIT_OLED_ENABLE) has its display off.
+        if (!is_oled_on()) {
+            return false;
+        }
         // render_qmk_logo();
         render_cat();
         oled_set_cursor(0, 0);
